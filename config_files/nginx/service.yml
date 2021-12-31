@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: test-env
+spec:
+  selector:
+    app: nginx-pod            # 通过标签选择目标 Pod
+  ports:
+    - protocol: TCP
+      port: 80            # Service 暴露的端口
+      targetPort: 80    # 转发到 pod 对应的端口
+
+# In ClusterIP mode, access it by `kubectl proxy`
+# http://localhost:8001/api/v1/namespaces/test-env/services/http:nginx-service:80/proxy/
+# In NodePort mode, access it directly by:
+# http://localhost:{RANDOM_PORT}
