@@ -1,0 +1,57 @@
+# After apply this file, failed to start the Pod, with the following error
+# message:
+      # 2022-01-04 07:54:08+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 5.6.51-1debian9 started.
+      # 2022-01-04 07:54:08+00:00 [ERROR] [Entrypoint]: mysqld failed while attempting to check config
+      #   command was: mysqld --verbose --help --log-bin-index=/tmp/tmp.gsnqDHvBZ1
+      #   mysqld: Can't read dir of '/etc/mysql/conf.d/' (Errcode: 13 - Permission denied)
+      # Fatal error in defaults handling. Program aborted
+# We can solve it by:
+      # sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+      # sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+# The solution is from:
+#    https://github.com/kubernetes/minikube/issues/7906
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql-deployment
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+spec:
+  selector:
+    matchLabels:
+      app: mysql-pod
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-pod
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql-pod-item
+        env:
+          # Use secret in real usage
+        - name: MYSQL_ROOT_PASSWORD
+          value: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
